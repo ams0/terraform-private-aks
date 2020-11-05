@@ -93,6 +93,7 @@ resource "azurerm_kubernetes_cluster" "privateaks" {
     node_count     = var.nodepool_nodes_count
     vm_size        = var.nodepool_vm_size
     vnet_subnet_id = module.kube_network.subnet_ids["aks-subnet"]
+    availability_zones = var.availability_zones
   }
 
   identity {

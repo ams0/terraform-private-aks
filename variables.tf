@@ -52,3 +52,8 @@ variable "network_service_cidr" {
   description = "CNI service cidr"
   default     = "10.2.0.0/24"
 }
+
+variable "availability_zones" {
+  description = "List of AZs for system (first) nodepool"
+  default     = ["1"]
+}
