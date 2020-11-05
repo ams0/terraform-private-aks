@@ -6,6 +6,10 @@ variable location {
   type = string
 }
 
+variable domain_name_label {
+  type = string
+}
+
 variable vnet_id {
   description = "ID of the VNET where jumpbox VM will be installed"
   type        = string

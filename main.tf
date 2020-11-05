@@ -120,6 +120,7 @@ resource "azurerm_role_assignment" "netcontributor" {
 module "jumpbox" {
   source                  = "./modules/jumpbox"
   location                = var.location
+  domain_name_label       = var.domain_name_label
   resource_group          = azurerm_resource_group.vnet.name
   vnet_id                 = module.hub_network.vnet_id
   kube_config_raw         = azurerm_kubernetes_cluster.privateaks.kube_config_raw

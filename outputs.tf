@@ -1,5 +1,5 @@
 output "ssh_command" {
-  value = "ssh -i ./key ${module.jumpbox.jumpbox_username}@${module.jumpbox.jumpbox_ip}"
+  value = "ssh -i ./key ${module.jumpbox.jumpbox_username}@${var.domain_name_label}.${var.location}.cloudapp.azure.com"
 }
 
 resource "local_file" "key" {

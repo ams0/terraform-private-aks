@@ -1,6 +1,6 @@
 variable "location" {
-  description = "The resource group location"
-  default     = "West Europe"
+  description = "The resource group location (use small cap, one word notation)"
+  default     = "westeurope"
 }
 
 variable "vnet_resource_group_name" {
@@ -56,4 +56,9 @@ variable "network_service_cidr" {
 variable "availability_zones" {
   description = "List of AZs for system (first) nodepool"
   default     = ["1"]
+}
+
+variable "domain_name_label" {
+  description = "Domain name for jumbox"
+  default     = "fullyprivaks"
 }
