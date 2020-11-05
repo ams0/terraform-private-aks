@@ -121,6 +121,7 @@ module "jumpbox" {
   location                = var.location
   resource_group          = azurerm_resource_group.vnet.name
   vnet_id                 = module.hub_network.vnet_id
+  kube_config_raw         = azurerm_kubernetes_cluster.privateaks.kube_config_raw
   subnet_id               = module.hub_network.subnet_ids["jumpbox-subnet"]
   dns_zone_name           = join(".", slice(split(".", azurerm_kubernetes_cluster.privateaks.private_fqdn), 1, length(split(".", azurerm_kubernetes_cluster.privateaks.private_fqdn))))
   dns_zone_resource_group = azurerm_kubernetes_cluster.privateaks.node_resource_group

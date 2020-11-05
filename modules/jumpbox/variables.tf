@@ -32,3 +32,8 @@ variable vm_user {
   type        = string
   default     = "azureuser"
 }
+
+variable  kube_config_raw {
+  description = "The raw kubeconfig"
+  type        = string
+}

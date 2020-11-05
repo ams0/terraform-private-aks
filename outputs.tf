@@ -1,8 +1,9 @@
 output "ssh_command" {
-  value = "ssh ${module.jumpbox.jumpbox_username}@${module.jumpbox.jumpbox_ip}"
+  value = "ssh -i ./key ${module.jumpbox.jumpbox_username}@${module.jumpbox.jumpbox_ip}"
 }
 
-output "jumpbox_password" {
-  description = "Jumpbox Admin Passowrd"
-  value       = module.jumpbox.jumpbox_password
+resource "local_file" "key" {
+  filename = "./key"
+  sensitive_content  = module.jumpbox.ssh_private_key
+  file_permission = "0600"
 }

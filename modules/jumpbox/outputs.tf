@@ -8,7 +8,6 @@ output "jumpbox_username" {
   value       = var.vm_user
 }
 
-output "jumpbox_password" {
-  description = "Jumpbox VM admin password"
-  value       = random_password.adminpassword.result
+output "ssh_private_key" {
+  value = tls_private_key.sshkey.private_key_pem
 }
