@@ -128,3 +128,9 @@ module "jumpbox" {
   dns_zone_name           = join(".", slice(split(".", azurerm_kubernetes_cluster.privateaks.private_fqdn), 1, length(split(".", azurerm_kubernetes_cluster.privateaks.private_fqdn))))
   dns_zone_resource_group = azurerm_kubernetes_cluster.privateaks.node_resource_group
 }
+
+module "nodepool" {
+  source = "./modules/nodepool"
+  kubernetes_cluster_id = azurerm_kubernetes_cluster.privateaks.id
+  additional_node_pools = var.additional_node_pools
+}
