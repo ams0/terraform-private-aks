@@ -80,10 +80,6 @@ module "routetable" {
   subnet_id          = module.kube_network.subnet_ids["aks-subnet"]
 }
 
-module "service_principal" {
-  source = "./modules/service_principal"
-}
-
 resource "azurerm_kubernetes_cluster" "privateaks" {
   name                    = "private-aks"
   location                = var.location
@@ -100,15 +96,14 @@ resource "azurerm_kubernetes_cluster" "privateaks" {
     availability_zones = var.availability_zones
   }
 
-  service_principal  {
-    client_id = module.service_principal.id
-    client_secret = module.service_principal.secret
+  identity {
+    type = "SystemAssigned"
   }
 
   network_profile {
     docker_bridge_cidr = var.network_docker_bridge_cidr
     dns_service_ip     = var.network_dns_service_ip
-    network_plugin     = "kubenet"
+    network_plugin     = "azure"
     outbound_type      = "userDefinedRouting"
     service_cidr       = var.network_service_cidr
   }
@@ -119,7 +114,7 @@ resource "azurerm_kubernetes_cluster" "privateaks" {
 resource "azurerm_role_assignment" "netcontributor" {
   role_definition_name = "Network Contributor"
   scope                = module.kube_network.subnet_ids["aks-subnet"]
-  principal_id         = module.service_principal.id
+  principal_id         = azurerm_kubernetes_cluster.privateaks.identity[0].principal_id
 }
 
 module "jumpbox" {
@@ -140,4 +135,7 @@ module "nodepool" {
   resource_group_name = azurerm_resource_group.rg.name
   kubernetes_cluster_id = azurerm_kubernetes_cluster.privateaks.id
   additional_node_pools = var.additional_node_pools
+
+    depends_on = [azurerm_kubernetes_cluster.privateaks]
+
 }
