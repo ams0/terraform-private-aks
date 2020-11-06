@@ -1,18 +1,28 @@
 locals {
   additional_node_pools = flatten([
     for np in var.additional_node_pools : {
-      name                = np.name
-      vm_size             = np.vm_size
-      node_count          = np.node_count
-      mode                = np.mode
-      availability_zones  = np.availability_zones
-      os_type             = np.os_type
-      priority            = np.priority
+      name               = np.name
+      vm_size            = np.vm_size
+      node_count         = np.node_count
+      mode               = np.mode
+      availability_zones = np.availability_zones
+      os_type            = np.os_type
+      priority           = np.priority
+      subnet_prefix      = np.subnet_prefix
 
       tags        = np.tags
       node_labels = np.node_labels
     }
   ])
+}
+
+resource "azurerm_subnet" "subnet" {
+  for_each = { for np in local.additional_node_pools : np.name => np }
+
+  name                 = each.key
+  resource_group_name  = var.resource_group_name
+  virtual_network_name = var.vnet_name
+  address_prefixes     = each.value.subnet_prefix
 }
 
 resource "azurerm_kubernetes_cluster_node_pool" "additional_pools" {

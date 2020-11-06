@@ -1,5 +1,5 @@
 terraform {
-  required_version = ">= 0.12"
+  required_version = ">= 0.13"
 }
 
 provider "azurerm" {
@@ -7,44 +7,44 @@ provider "azurerm" {
   features {}
 }
 
-resource "azurerm_resource_group" "vnet" {
-  name     = var.vnet_resource_group_name
+resource "random_id" "rg" {
+  byte_length = 8
+}
+
+resource "azurerm_resource_group" "rg" {
+  name     = "${var.resource_group_name}-${lower(random_id.rg.hex)}"
   location = var.location
 }
 
-resource "azurerm_resource_group" "kube" {
-  name     = var.kube_resource_group_name
-  location = var.location
-}
 
 module "hub_network" {
   source              = "./modules/vnet"
-  resource_group_name = azurerm_resource_group.vnet.name
+  resource_group_name = azurerm_resource_group.rg.name
   location            = var.location
   vnet_name           = var.hub_vnet_name
-  address_space       = ["10.0.0.0/22"]
+  address_space       = var.hub_address_space
   subnets = [
     {
       name : "AzureFirewallSubnet"
-      address_prefixes : ["10.0.0.0/24"]
+      address_prefixes : var.hub_firewall_subnet
     },
     {
       name : "jumpbox-subnet"
-      address_prefixes : ["10.0.1.0/24"]
+      address_prefixes : var.jumpbox_subnet
     }
   ]
 }
 
 module "kube_network" {
   source              = "./modules/vnet"
-  resource_group_name = azurerm_resource_group.kube.name
+  resource_group_name = azurerm_resource_group.rg.name
   location            = var.location
   vnet_name           = var.kube_vnet_name
-  address_space       = ["10.0.4.0/22"]
+  address_space       = var.kube_address_space
   subnets = [
     {
       name : "aks-subnet"
-      address_prefixes : ["10.0.5.0/24"]
+      address_prefixes : var.aks_subnet_prefix
     }
   ]
 }
@@ -53,17 +53,17 @@ module "vnet_peering" {
   source              = "./modules/vnet_peering"
   vnet_1_name         = var.hub_vnet_name
   vnet_1_id           = module.hub_network.vnet_id
-  vnet_1_rg           = azurerm_resource_group.vnet.name
+  vnet_1_rg           = azurerm_resource_group.rg.name
   vnet_2_name         = var.kube_vnet_name
   vnet_2_id           = module.kube_network.vnet_id
-  vnet_2_rg           = azurerm_resource_group.kube.name
+  vnet_2_rg           = azurerm_resource_group.rg.name
   peering_name_1_to_2 = "HubToSpoke1"
   peering_name_2_to_1 = "Spoke1ToHub"
 }
 
 module "firewall" {
   source         = "./modules/firewall"
-  resource_group = azurerm_resource_group.vnet.name
+  resource_group = azurerm_resource_group.rg.name
   location       = var.location
   pip_name       = "azureFirewalls-ip"
   fw_name        = "kubenetfw"
@@ -72,7 +72,7 @@ module "firewall" {
 
 module "routetable" {
   source             = "./modules/route_table"
-  resource_group     = azurerm_resource_group.vnet.name
+  resource_group     = azurerm_resource_group.rg.name
   location           = var.location
   rt_name            = "kubenetfw_fw_rt"
   r_name             = "kubenetfw_fw_r"
@@ -80,11 +80,15 @@ module "routetable" {
   subnet_id          = module.kube_network.subnet_ids["aks-subnet"]
 }
 
+module "service_principal" {
+  source = "./modules/service_principal"
+}
+
 resource "azurerm_kubernetes_cluster" "privateaks" {
   name                    = "private-aks"
   location                = var.location
   kubernetes_version      = var.kube_version
-  resource_group_name     = azurerm_resource_group.kube.name
+  resource_group_name     = azurerm_resource_group.rg.name
   dns_prefix              = "private-aks"
   private_cluster_enabled = true
 
@@ -96,14 +100,15 @@ resource "azurerm_kubernetes_cluster" "privateaks" {
     availability_zones = var.availability_zones
   }
 
-  identity {
-    type = "SystemAssigned"
+  service_principal  {
+    client_id = module.service_principal.id
+    client_secret = module.service_principal.secret
   }
 
   network_profile {
     docker_bridge_cidr = var.network_docker_bridge_cidr
     dns_service_ip     = var.network_dns_service_ip
-    network_plugin     = "azure"
+    network_plugin     = "kubenet"
     outbound_type      = "userDefinedRouting"
     service_cidr       = var.network_service_cidr
   }
@@ -114,14 +119,14 @@ resource "azurerm_kubernetes_cluster" "privateaks" {
 resource "azurerm_role_assignment" "netcontributor" {
   role_definition_name = "Network Contributor"
   scope                = module.kube_network.subnet_ids["aks-subnet"]
-  principal_id         = azurerm_kubernetes_cluster.privateaks.identity[0].principal_id
+  principal_id         = module.service_principal.id
 }
 
 module "jumpbox" {
   source                  = "./modules/jumpbox"
   location                = var.location
   domain_name_label       = var.domain_name_label
-  resource_group          = azurerm_resource_group.vnet.name
+  resource_group          = azurerm_resource_group.rg.name
   vnet_id                 = module.hub_network.vnet_id
   kube_config_raw         = azurerm_kubernetes_cluster.privateaks.kube_config_raw
   subnet_id               = module.hub_network.subnet_ids["jumpbox-subnet"]
@@ -131,6 +136,8 @@ module "jumpbox" {
 
 module "nodepool" {
   source = "./modules/nodepool"
+  vnet_name   = var.kube_vnet_name
+  resource_group_name = azurerm_resource_group.rg.name
   kubernetes_cluster_id = azurerm_kubernetes_cluster.privateaks.id
   additional_node_pools = var.additional_node_pools
 }

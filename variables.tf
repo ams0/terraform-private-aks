@@ -3,9 +3,9 @@ variable "location" {
   default     = "westeurope"
 }
 
-variable "vnet_resource_group_name" {
+variable "resource_group_name" {
   description = "The resource group name to be created"
-  default     = "networks"
+  default     = "nopublicipaks"
 }
 
 variable "hub_vnet_name" {
@@ -13,9 +13,34 @@ variable "hub_vnet_name" {
   default     = "hub1-firewalvnet"
 }
 
+variable "hub_address_space" {
+  description = "Hub address space"
+  default     = ["10.0.0.0/22"]
+}
+
+variable "hub_firewall_subnet" {
+  description = "Hub VNET name"
+  default     = ["10.0.0.0/24"]
+}
+
+variable "jumpbox_subnet" {
+  description = "jumbox subnet prefix"
+  default     = ["10.0.1.0/24"]
+}
+
 variable "kube_vnet_name" {
   description = "AKS VNET name"
   default     = "spoke1-kubevnet"
+}
+
+variable "kube_address_space" {
+  description = "AKS VNET address space"
+  default     =  ["10.0.16.0/20"]
+}
+
+variable "aks_subnet_prefix" {
+  description = "AKS VNET address space for first pool"
+  default     =  ["10.0.16.0/24"]
 }
 
 variable "kube_version" {
@@ -23,10 +48,6 @@ variable "kube_version" {
   default     = "1.18.8"
 }
 
-variable "kube_resource_group_name" {
-  description = "The resource group name to be created"
-  default     = "nopublicipaks"
-}
 
 variable "nodepool_nodes_count" {
   description = "Default nodepool nodes count"
@@ -72,6 +93,7 @@ variable "additional_node_pools" {
     availability_zones = list(string)
     os_type            = string
     priority           = string
+    subnet_prefix      = list(string)
     tags               = map(string)
     node_labels        = map(string)
   }))

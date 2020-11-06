@@ -7,6 +7,7 @@ additional_node_pools  = [
       availability_zones = ["1", "2", "3"]
       os_type            = "Linux"
       priority           = "Regular"
+      subnet_prefix        =  ["10.0.17.0/24"]
       tags = {
         source = "terraform"
       }
@@ -22,6 +23,7 @@ additional_node_pools  = [
       availability_zones = ["1", "2", "3"]
       os_type            = "Linux"
       priority           = "Regular"
+      subnet_prefix        =  ["10.0.18.0/24"]
       tags = {
         source = "terraform"
         use    = "application"
